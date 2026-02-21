@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Camera Entity Detection</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background-color: #1e1e2e; color: #cdd6f4; margin: 0; padding: 20px; }
+        video { width: 100%; max-width: 400px; border-radius: 8px; background: #000; transform: scaleX(-1); }
+        canvas { display: none; }
+        #results { margin-top: 20px; padding: 15px; background: #313244; border-radius: 8px; display: inline-block; text-align: left; min-width: 300px; }
+        .detection { font-size: 1.1em; margin: 5px 0; color: #a6e3a1; }
+        button { padding: 12px 24px; font-size: 1em; background-color: #89b4fa; color: #11111b; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; font-weight: bold;}
+        button:active { background-color: #74c7ec; }
+    </style>
+</head>
+<body>
+
+    <h2>Live Entity Detection</h2>
+    
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    
+    <br>
+    <button id="detectBtn">Scan Once</button>
+    <button id="autoDetectBtn">Start Auto-Scan</button>
+
+    <div id="results">
+        <strong>Detected Entities:</strong>
+        <div id="output">Waiting for image...</div>
+    </div>
+
+    <script>
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const output = document.getElementById('output');
+        let autoDetectInterval;
+
+        // Request access to the phone's rear camera
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error("Camera error: ", err);
+            output.innerHTML = "<span style='color:#f38ba8;'>Camera access denied. Ensure you are using HTTPS or Localhost.</span>";
+        });
+
+        // Function to capture a frame and send to the Flask API
+        async function detectEntity() {
+            if (!video.videoWidth) return;
+
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw current video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to base64 JPEG
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+            try {
+                output.innerHTML = "<em>Analyzing frame...</em>";
+                
+                // Send to Flask backend
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    output.innerHTML = '';
+                    data.detections.forEach(d => {
+                        const conf = (d.confidence * 100).toFixed(1);
+                        output.innerHTML += `<div class="detection">🎯 ${d.entity} (${conf}%)</div>`;
+                    });
+                } else {
+                    output.innerHTML = `<span style='color:#f38ba8;'>Error: ${data.error}</span>`;
+                }
+            } catch (err) {
+                console.error(err);
+                output.innerHTML = "<span style='color:#f38ba8;'>Failed to connect to server.</span>";
+            }
+        }
+
+        document.getElementById('detectBtn').addEventListener('click', detectEntity);
+        
+        document.getElementById('autoDetectBtn').addEventListener('click', (e) => {
+            if (autoDetectInterval) {
+                clearInterval(autoDetectInterval);
+                autoDetectInterval = null;
+                e.target.innerText = "Start Auto-Scan";
+            } else {
+                // Run detection every 1.5 seconds
+                autoDetectInterval = setInterval(detectEntity, 1500);
+                e.target.innerText = "Stop Auto-Scan";
+            }
+        });
+    </script>
+</body>
+</html>
