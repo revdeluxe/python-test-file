@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Clerk | Command Center</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .query-card { border-left: 5px solid #0088cc; margin-bottom: 10px; }
+        .status-online { color: #28a745; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">📦 TechHaven AI Manager</a>
+            <span class="navbar-text status-online">● Bot System Live</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">Update Store Promo</div>
+                    <div class="card-body">
+                        <form action="/update_promo" method="POST">
+                            <textarea name="promo" class="form-control mb-3" rows="3" placeholder="e.g. 10% off Gaming Laptops this week!"></textarea>
+                            <button class="btn btn-primary w-100">Sync to AI Clerk</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Live Customer Queries</span>
+                        <span class="badge bg-secondary">Total: {{ total_queries }}</span>
+                    </div>
+                    <div class="card-body" id="feed">
+                        {% for log in logs %}
+                        <div class="card query-card shadow-sm p-3">
+                            <div class="d-flex justify-content-between">
+                                <strong>User ID: {{ log.user }}</strong>
+                                <small class="text-muted">{{ log.time }}</small>
+                            </div>
+                            <p class="mb-1 mt-2 text-primary italic">"{{ log.text }}"</p>
+                            <small class="text-dark"><strong>AI Replied:</strong> {{ log.response }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

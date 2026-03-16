@@ -1,6 +1,13 @@
+# Web & Dashboard
 flask
+requests
+python-dotenv
+
+# AI & LLM
 google-genai
 transformers
 torch
 accelerate
-python-dotenv
+
+# Telegram 
+pyTelegramBotAPI
